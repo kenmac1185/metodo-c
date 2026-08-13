@@ -4,8 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>CIPAC MT 53.3.1 — Auto Wetting Vision</title>
-<link rel="manifest" href="./manifest.webmanifest">
-<meta name="theme-color" content="#0b6f63">
 <style>
 :root{
   --bg:#f4f7f8; --card:#fff; --ink:#172126; --muted:#65757c; --line:#d9e2e5;
@@ -22,7 +20,7 @@ h1{font-size:19px;margin:0}.subtitle{font-size:12px;color:var(--muted);margin-to
 main{max-width:1500px;margin:18px auto;padding:0 18px;display:grid;grid-template-columns:minmax(0,1.55fr) minmax(340px,.7fr);gap:18px}
 .card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow)}
 .viewer{padding:13px}
-.canvaswrap{position:relative;aspect-ratio:16/9;background:#081013;border-radius:16px;overflow:hidden;display:grid;place-items:center}
+.canvaswrap{position:relative;aspect-ratio:16/9;background:#081013;border-radius:16px;overflow:hidden;display:grid;place-items:center;min-height:280px}
 canvas{width:100%;height:100%;object-fit:contain}
 .hint{position:absolute;left:12px;right:12px;bottom:12px;color:white;background:rgba(0,0,0,.57);padding:9px 11px;border-radius:11px;font-size:12px;pointer-events:none}
 .toolbar{display:flex;gap:9px;flex-wrap:wrap;margin-top:11px}
@@ -60,7 +58,7 @@ a{color:var(--accent);font-weight:850;text-decoration:none}
 .reviewgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
 .pill{display:inline-flex;align-items:center;border-radius:999px;padding:6px 9px;background:#edf2f3;font-size:11px;font-weight:800}
 @media(max-width:980px){main{grid-template-columns:1fr}.timer{font-size:42px}.metrics{grid-template-columns:1fr 1fr 1fr}}
-@media(max-width:560px){.grid{grid-template-columns:1fr}.full{grid-column:auto}.head{align-items:flex-start}.status{white-space:normal}.metrics{grid-template-columns:1fr 1fr}.reviewgrid{grid-template-columns:1fr}}
+@media(max-width:560px){.grid{grid-template-columns:1fr}.full{grid-column:auto}.head{align-items:flex-start}.status{white-space:normal}.metrics{grid-template-columns:1fr 1fr}.reviewgrid{grid-template-columns:1fr}.viewer{padding:8px}.canvaswrap{aspect-ratio:auto;height:68vh;min-height:500px;max-height:760px;border-radius:12px}.canvaswrap canvas{width:100%;height:100%;object-fit:contain}.hint{position:static;margin-top:8px;background:#eef3f4;color:var(--ink);border:1px solid var(--line);font-size:12px}.toolbar{position:sticky;bottom:8px;z-index:8;background:rgba(255,255,255,.94);padding:8px;border-radius:14px;backdrop-filter:blur(10px)}main{padding:0 8px;margin-top:8px}.panel{padding:12px}.timerbox{position:sticky;top:84px;z-index:7}.subtitle{font-size:11px}}
 </style>
 </head>
 <body>
@@ -230,10 +228,10 @@ async function startCamera(){
     const s=stream.getVideoTracks()[0].getSettings();
     canvas.width=s.width||1280; canvas.height=s.height||720;
     actualFps=s.frameRate||fps; $('fpsOut').textContent=actualFps?Number(actualFps).toFixed(0):'—';
-    state='camera'; setHeader('Cámara activa','ok'); $('stateText').textContent='Ajusta la elipse a la superficie del agua';
+    state='camera'; setHeader('Cámara activa','ok'); $('stateText').textContent='Ajusta la elipse a la superficie del agua'; $('hint').style.display='none';
     updateButtons(); await enumerate();
     try{if('wakeLock' in navigator) wakeLock=await navigator.wakeLock.request('screen')}catch(e){}
-  }catch(e){alert('No se pudo abrir la cámara: '+e.message+'\n\nConcede permiso y usa un navegador moderno. Si el archivo local no permite cámara, ejecútalo mediante HTTPS o localhost.')}
+  }catch(e){$('hint').style.display='block';alert('No se pudo abrir la cámara: '+e.message+'\n\nConcede permiso y usa un navegador moderno. Si el archivo local no permite cámara, ejecútalo mediante HTTPS o localhost.')}
 }
 async function enumerate(){
   try{
