@@ -1,1 +1,526 @@
-<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#0b6f63"><link rel="stylesheet" href="./style.css"><title>CIPAC MT 53.3.1 AutoVision</title></head><body><header><div class="head"><div><div class="title">CIPAC MT 53.3.1 — AutoVision</div><div class="sub">Ensayo de humectación · una cámara</div></div><div class="status"><span class="dot"></span>Cámara</div></div></header><main><section class="card viewer"><video id="v" autoplay playsinline muted style="width:100%;border-radius:15px;background:#111"></video><div class="toolbar"><button id="b" class="primary">Iniciar cámara</button></div></section><aside class="card panel"><div class="timerBox"><div class="timer">0.00 <small>s</small></div><div class="state">En espera</div></div><h2>Identificación</h2><div class="grid"><div class="full"><label>Producto</label><input></div><div><label>Lote</label><input></div><div><label>Analista</label><input></div><div><label>Masa (g)</label><input value="5.00"></div><div><label>Agua (mL)</label><input value="100.0"></div></div></aside></main><script>document.getElementById('b').addEventListener('click',async()=>{try{const s=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'}},audio:false});document.getElementById('v').srcObject=s}catch(e){alert('No se pudo abrir la cámara: '+e.message)}});</script></body></html>
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>CIPAC MT 53.3.1 — Auto Wetting Vision</title>
+<link rel="manifest" href="./manifest.webmanifest">
+<meta name="theme-color" content="#0b6f63">
+<style>
+:root{
+  --bg:#f4f7f8; --card:#fff; --ink:#172126; --muted:#65757c; --line:#d9e2e5;
+  --accent:#0b6f63; --accentSoft:#e3f4ef; --danger:#b3261e; --warn:#8a6500;
+  --blue:#1f5f9f; --shadow:0 10px 32px rgba(24,45,52,.09); --r:20px;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,Segoe UI,Roboto,Arial,sans-serif}
+header{position:sticky;top:0;z-index:20;background:rgba(255,255,255,.93);backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
+.head{max-width:1500px;margin:auto;padding:15px 18px;display:flex;gap:14px;align-items:center;justify-content:space-between}
+h1{font-size:19px;margin:0}.subtitle{font-size:12px;color:var(--muted);margin-top:4px}
+.status{display:flex;align-items:center;gap:8px;background:#edf2f3;border-radius:999px;padding:8px 11px;font-size:12px;font-weight:800;white-space:nowrap}
+.dot{width:9px;height:9px;border-radius:50%;background:#829196}.dot.rec{background:#d93025;box-shadow:0 0 0 5px rgba(217,48,37,.12)}.dot.ok{background:#16856d}
+main{max-width:1500px;margin:18px auto;padding:0 18px;display:grid;grid-template-columns:minmax(0,1.55fr) minmax(340px,.7fr);gap:18px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow)}
+.viewer{padding:13px}
+.canvaswrap{position:relative;aspect-ratio:16/9;background:#081013;border-radius:16px;overflow:hidden;display:grid;place-items:center}
+canvas{width:100%;height:100%;object-fit:contain}
+.hint{position:absolute;left:12px;right:12px;bottom:12px;color:white;background:rgba(0,0,0,.57);padding:9px 11px;border-radius:11px;font-size:12px;pointer-events:none}
+.toolbar{display:flex;gap:9px;flex-wrap:wrap;margin-top:11px}
+button{border:0;border-radius:13px;padding:11px 14px;background:#edf2f3;color:var(--ink);font-weight:850;cursor:pointer}
+button:hover{filter:brightness(.98)} button:disabled{opacity:.42;cursor:not-allowed}
+.primary{background:var(--accent);color:#fff}.arm{background:var(--blue);color:#fff}.danger{background:var(--danger);color:#fff}
+.panel{padding:17px}
+.timerbox{background:#0b1518;color:#fff;padding:16px;border-radius:17px;margin-bottom:14px}
+.timer{font:900 48px/1 ui-monospace,SFMono-Regular,Consolas,monospace;letter-spacing:-.05em;font-variant-numeric:tabular-nums}
+.timer small{font:700 16px/1 Segoe UI,Arial;color:#a8bac0}.state{font-size:12px;color:#aec0c6;margin-top:7px}
+h2{font-size:14px;margin:0 0 11px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.full{grid-column:1/-1}
+label{display:block;font-size:10px;color:var(--muted);font-weight:850;text-transform:uppercase;letter-spacing:.045em;margin-bottom:4px}
+input,select{width:100%;border:1px solid var(--line);border-radius:11px;background:white;padding:9px 10px;font:inherit;color:var(--ink)}
+input[type=range]{padding:0}
+.sep{height:1px;background:var(--line);margin:15px 0}
+.metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.metric{background:#f5f8f9;border:1px solid var(--line);border-radius:14px;padding:10px}
+.metric .v{font-size:20px;font-weight:900}.metric .l{font-size:10px;color:var(--muted);margin-top:3px}
+.callout{margin-top:10px;background:#fff7df;border:1px solid #efd585;color:#694e00;padding:10px 11px;border-radius:12px;font-size:11px;line-height:1.4}
+.autobox{background:var(--accentSoft);border:1px solid #b9dfd5;padding:10px 11px;border-radius:13px;font-size:11px;line-height:1.45;margin-bottom:12px}
+.results{max-width:1500px;margin:0 auto 35px;padding:0 18px}
+.results .card{padding:17px}
+.rowhead{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+.tablewrap{overflow:auto;border:1px solid var(--line);border-radius:14px}
+table{width:100%;border-collapse:collapse;min-width:1120px}
+th,td{font-size:12px;padding:9px 11px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap}
+th{background:#f4f7f8;color:#526269;font-size:10px;text-transform:uppercase;letter-spacing:.04em}
+tr:last-child td{border-bottom:0}
+a{color:var(--accent);font-weight:850;text-decoration:none}
+.mini{font-size:11px;color:var(--muted)}
+.review{display:none;margin-top:12px;border:1px solid var(--line);border-radius:15px;padding:12px}
+.review video{width:100%;max-height:430px;background:#0b1113;border-radius:12px}
+.reviewgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
+.pill{display:inline-flex;align-items:center;border-radius:999px;padding:6px 9px;background:#edf2f3;font-size:11px;font-weight:800}
+@media(max-width:980px){main{grid-template-columns:1fr}.timer{font-size:42px}.metrics{grid-template-columns:1fr 1fr 1fr}}
+@media(max-width:560px){.grid{grid-template-columns:1fr}.full{grid-column:auto}.head{align-items:flex-start}.status{white-space:normal}.metrics{grid-template-columns:1fr 1fr}.reviewgrid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header>
+  <div class="head">
+    <div>
+      <h1>CIPAC MT 53.3.1 — Auto Wetting Vision</h1>
+      <div class="subtitle">Una cámara · vista oblicua superior · inicio y final automáticos · resultado a 0.01 s</div>
+    </div>
+    <div class="status"><span id="dot" class="dot"></span><span id="headerStatus">Cámara desconectada</span></div>
+  </div>
+</header>
+
+<main>
+  <section class="card viewer">
+    <div class="canvaswrap">
+      <canvas id="canvas" width="1280" height="720"></canvas>
+      <div id="hint" class="hint">Coloca la cámara como en la vista 3: 45–60° hacia abajo, superficie completa visible y el vaso ocupando ~70–80 % del encuadre.</div>
+    </div>
+    <div class="toolbar">
+      <button class="primary" id="cameraBtn">Iniciar cámara</button>
+      <button class="arm" id="armBtn" disabled>Calibrar superficie + armar</button>
+      <button id="recalBtn" disabled>Recalibrar</button>
+      <button class="danger" id="abortBtn" disabled>Abortar ensayo</button>
+    </div>
+    <div class="mini" style="margin-top:9px">
+      La grabación comienza al armar. La app detecta el primer contacto y luego busca la desaparición sostenida de agregados gruesos dentro de la ROI elíptica.
+    </div>
+
+    <div id="review" class="review">
+      <b>Revisión del último ensayo</b>
+      <div class="mini" style="margin:4px 0 9px">El video incluye ROI, estado, métricas y cronómetro. La grabación continúa durante la ventana de confirmación; el resultado usa el primer frame que cumplió el criterio de finalización.</div>
+      <video id="reviewVideo" controls playsinline></video>
+      <div class="reviewgrid">
+        <div class="metric"><div class="v" id="reviewTime">—</div><div class="l">Tiempo de humectación</div></div>
+        <div class="metric"><div class="v" id="reviewStart">—</div><div class="l">Contacto detectado</div></div>
+        <div class="metric"><div class="v" id="reviewEnd">—</div><div class="l">Fin automático</div></div>
+      </div>
+    </div>
+  </section>
+
+  <aside class="card panel">
+    <div class="timerbox">
+      <div class="timer"><span id="timer">0.00</span> <small>s</small></div>
+      <div class="state" id="stateText">En espera</div>
+    </div>
+
+    <div class="autobox">
+      <b>Lógica automática:</b> 1) calibra agua quieta; 2) detecta el primer cambio abrupto por caída de muestra; 3) analiza solo la superficie elíptica; 4) ignora textura fina y busca agregados de tamaño relevante; 5) cuando desaparecen durante una ventana estable, fija automáticamente el STOP en el primer frame de esa ventana.
+    </div>
+
+    <h2>Identificación</h2>
+    <div class="grid">
+      <div class="full"><label for="product">Producto / muestra</label><input id="product" placeholder="Ej. Formulación WP"></div>
+      <div><label for="lot">Lote</label><input id="lot"></div>
+      <div><label for="analyst">Analista</label><input id="analyst"></div>
+      <div><label for="mass">Masa (g)</label><input id="mass" type="number" step="0.01" value="5.00"></div>
+      <div><label for="water">Agua (mL)</label><input id="water" type="number" step="0.1" value="100.0"></div>
+      <div><label for="replicate">Réplica</label><input id="replicate" type="number" min="1" value="1"></div>
+      <div><label for="waterId">ID agua CIPAC D</label><input id="waterId"></div>
+    </div>
+
+    <div class="sep"></div>
+    <h2>Encuadre de la superficie</h2>
+    <div class="grid">
+      <div class="full"><label for="cameraSelect">Cámara</label><select id="cameraSelect"><option value="default">Predeterminada</option></select></div>
+      <div><label for="fps">FPS solicitado</label><select id="fps"><option value="60">60</option><option value="30">30</option><option value="120">120</option></select></div>
+      <div><label for="roiX">Centro X</label><input id="roiX" type="range" min="20" max="80" value="50"></div>
+      <div><label for="roiY">Centro Y</label><input id="roiY" type="range" min="20" max="80" value="49"></div>
+      <div><label for="roiW">Ancho elipse</label><input id="roiW" type="range" min="25" max="90" value="58"></div>
+      <div><label for="roiH">Alto elipse</label><input id="roiH" type="range" min="18" max="75" value="40"></div>
+    </div>
+
+    <div class="sep"></div>
+    <h2>Detección automática</h2>
+    <div class="grid">
+      <div><label for="contactSensitivity">Contacto</label><input id="contactSensitivity" type="range" min="2" max="20" step="0.5" value="7"></div>
+      <div><label for="aggregateContrast">Contraste agregado</label><input id="aggregateContrast" type="range" min="4" max="35" value="14"></div>
+      <div><label for="minBlob">Tamaño mínimo agregado</label><input id="minBlob" type="range" min="4" max="80" value="18"></div>
+      <div><label for="endTolerance">Tolerancia final</label><input id="endTolerance" type="range" min="0" max="6" value="1"></div>
+      <div><label for="holdSec">Confirmación final (s)</label><input id="holdSec" type="number" min="0.3" max="5" step="0.1" value="1.2"></div>
+      <div><label for="minRunSec">Tiempo mínimo (s)</label><input id="minRunSec" type="number" min="0.2" max="20" step="0.1" value="0.8"></div>
+    </div>
+
+    <div class="sep"></div>
+    <div class="metrics">
+      <div class="metric"><div class="v" id="fpsOut">—</div><div class="l">FPS cámara</div></div>
+      <div class="metric"><div class="v" id="contactScore">—</div><div class="l">Cambio / contacto</div></div>
+      <div class="metric"><div class="v" id="blobScore">—</div><div class="l">Agregados gruesos</div></div>
+    </div>
+    <div class="callout">
+      <b>Control del método:</b> la detección automática del punto final es una capa instrumental añadida al MT 53.3.1. Antes de usarla como resultado oficial, debe verificarse/validarse contra el criterio visual del laboratorio con varios productos, analistas y tiempos de humectación.
+    </div>
+  </aside>
+</main>
+
+<section class="results">
+  <div class="card">
+    <div class="rowhead">
+      <div><b>Resultados automáticos</b><div class="mini">Se almacena el tiempo con dos decimales y la fuente de inicio/final.</div></div>
+      <div style="display:flex;gap:8px">
+        <button id="exportBtn">Exportar CSV</button>
+        <button id="clearBtn">Limpiar tabla</button>
+      </div>
+    </div>
+    <div class="tablewrap">
+      <table>
+        <thead><tr>
+          <th>#</th><th>Fecha</th><th>Producto</th><th>Lote</th><th>Rép.</th><th>Masa g</th><th>Agua mL</th>
+          <th>Inicio</th><th>Final</th><th>Tiempo s</th><th>FPS</th><th>Analista</th><th>Video</th>
+        </tr></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<video id="video" playsinline muted style="display:none"></video>
+
+<script>
+const $ = id => document.getElementById(id);
+const video=$('video'), canvas=$('canvas'), ctx=canvas.getContext('2d',{alpha:false});
+let stream=null, state='idle', raf=0, recorder=null, chunks=[], lastUrl=null, wakeLock=null;
+let calibFrames=[], baseline=null, baselineNoise=0, calibratingUntil=0;
+let startT=0, startCandidate=0, startHits=0, endCandidate=0, stopT=0;
+let rows=JSON.parse(localStorage.getItem('cipac_auto_rows')||'[]');
+let processLast=0, actualFps=0, fpsEMA=0, lastRaf=performance.now();
+let lastAnalysis={contact:0, blobs:0, blobPixels:0};
+let recordingStart=0, confirmedStopWall=0;
+
+const sampleW=96, sampleH=72;
+const work=document.createElement('canvas'); work.width=sampleW; work.height=sampleH;
+const wctx=work.getContext('2d',{willReadFrequently:true});
+
+function esc(v){return (v??'').toString().replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function fmt(v){return Number(v||0).toFixed(2)}
+function setHeader(text,kind=''){ $('headerStatus').textContent=text; $('dot').className='dot'+(kind?' '+kind:''); }
+function stamp(){return new Date().toLocaleString('es-PE',{hour12:false})}
+function ellipse(){
+  return {
+    cx:canvas.width*Number($('roiX').value)/100,
+    cy:canvas.height*Number($('roiY').value)/100,
+    rx:canvas.width*Number($('roiW').value)/200,
+    ry:canvas.height*Number($('roiH').value)/200
+  };
+}
+function insideEllipse(nx,ny){
+  const cx=Number($('roiX').value)/100, cy=Number($('roiY').value)/100;
+  const rx=Number($('roiW').value)/200, ry=Number($('roiH').value)/200;
+  const dx=(nx-cx)/rx, dy=(ny-cy)/ry;
+  return dx*dx+dy*dy<=1;
+}
+
+async function startCamera(){
+  try{
+    if(stream) stream.getTracks().forEach(t=>t.stop());
+    const fps=Number($('fps').value);
+    const dev=$('cameraSelect').value;
+    stream=await navigator.mediaDevices.getUserMedia({
+      audio:false,
+      video:{
+        width:{ideal:1920},height:{ideal:1080},frameRate:{ideal:fps,max:fps},
+        ...(dev && dev!=='default'?{deviceId:{exact:dev}}:{facingMode:{ideal:'environment'}})
+      }
+    });
+    video.srcObject=stream; await video.play();
+    const s=stream.getVideoTracks()[0].getSettings();
+    canvas.width=s.width||1280; canvas.height=s.height||720;
+    actualFps=s.frameRate||fps; $('fpsOut').textContent=actualFps?Number(actualFps).toFixed(0):'—';
+    state='camera'; setHeader('Cámara activa','ok'); $('stateText').textContent='Ajusta la elipse a la superficie del agua';
+    updateButtons(); await enumerate();
+    try{if('wakeLock' in navigator) wakeLock=await navigator.wakeLock.request('screen')}catch(e){}
+  }catch(e){alert('No se pudo abrir la cámara: '+e.message+'\n\nConcede permiso y usa un navegador moderno. Si el archivo local no permite cámara, ejecútalo mediante HTTPS o localhost.')}
+}
+async function enumerate(){
+  try{
+    const cams=(await navigator.mediaDevices.enumerateDevices()).filter(d=>d.kind==='videoinput');
+    const current=stream?.getVideoTracks()[0]?.getSettings()?.deviceId;
+    $('cameraSelect').innerHTML='<option value="default">Predeterminada</option>'+cams.map((c,i)=>`<option value="${c.deviceId}">${esc(c.label||('Cámara '+(i+1)))}</option>`).join('');
+    if(current) $('cameraSelect').value=current;
+  }catch(e){}
+}
+function updateButtons(){
+  $('armBtn').disabled=state!=='camera';
+  $('recalBtn').disabled=state!=='camera';
+  $('abortBtn').disabled=!(state==='calibrating'||state==='armed'||state==='running'||state==='confirming');
+  $('cameraBtn').disabled=['calibrating','armed','running','confirming'].includes(state);
+  $('cameraSelect').disabled=['calibrating','armed','running','confirming'].includes(state);
+}
+function draw(now){
+  if(video.readyState>=2) ctx.drawImage(video,0,0,canvas.width,canvas.height);
+  else{ctx.fillStyle='#081013';ctx.fillRect(0,0,canvas.width,canvas.height)}
+  const e=ellipse();
+  ctx.save();
+  ctx.strokeStyle='#ffd54f'; ctx.lineWidth=Math.max(2,canvas.width/600); ctx.setLineDash([14,9]);
+  ctx.beginPath();ctx.ellipse(e.cx,e.cy,e.rx,e.ry,0,0,Math.PI*2);ctx.stroke();ctx.restore();
+
+  ctx.fillStyle='rgba(0,0,0,.66)';ctx.fillRect(18,18,Math.min(735,canvas.width*.62),116);
+  ctx.fillStyle='#fff';ctx.font=`700 ${Math.max(18,canvas.width/48)}px Segoe UI,Arial`;
+  ctx.fillText('CIPAC MT 53.3.1 · AUTO',34,51);
+  ctx.font=`600 ${Math.max(13,canvas.width/68)}px Segoe UI,Arial`;
+  ctx.fillText(`${$('product').value||'Sin identificar'} · Lote ${$('lot').value||'—'}`,34,82);
+  ctx.fillStyle='#cbd8dc';
+  ctx.fillText(`${$('mass').value||'—'} g · ${$('water').value||'—'} mL · Rép. ${$('replicate').value||'—'} · 1 cámara`,34,110);
+
+  let elapsed=0, label='EN ESPERA';
+  if(state==='calibrating') label='CALIBRANDO AGUA QUIETA';
+  if(state==='armed') label='ARMADO · ESPERANDO CONTACTO';
+  if(state==='running'||state==='confirming'){ elapsed=(now-startT)/1000; label=state==='confirming'?'VERIFICANDO FIN AUTOMÁTICO':'HUMECTACIÓN EN CURSO'; }
+  if(state==='camera' && stopT>0) elapsed=(stopT-startT)/1000;
+
+  ctx.fillStyle='rgba(0,0,0,.68)';ctx.fillRect(canvas.width-410,18,392,116);
+  ctx.textAlign='right';ctx.fillStyle=(state==='running'||state==='confirming')?'#8ff0d3':'#fff';
+  ctx.font=`900 ${Math.max(32,canvas.width/28)}px ui-monospace,Consolas,monospace`;
+  ctx.fillText(fmt(elapsed)+' s',canvas.width-36,77);
+  ctx.fillStyle='#d3dfe2';ctx.font=`700 ${Math.max(12,canvas.width/78)}px Segoe UI,Arial`;ctx.fillText(label,canvas.width-36,108);
+  ctx.textAlign='left';
+
+  if(['calibrating','armed','running','confirming'].includes(state)){
+    ctx.fillStyle='#ff453a';ctx.beginPath();ctx.arc(34,canvas.height-34,10,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#fff';ctx.font=`700 ${Math.max(13,canvas.width/78)}px Segoe UI,Arial`;ctx.fillText('REC',53,canvas.height-28);
+  }
+
+  // analytical values inside recording
+  ctx.fillStyle='rgba(0,0,0,.55)';ctx.fillRect(canvas.width-310,canvas.height-82,292,64);
+  ctx.fillStyle='#fff';ctx.font=`600 ${Math.max(12,canvas.width/85)}px ui-monospace,Consolas,monospace`;
+  ctx.textAlign='right';
+  ctx.fillText(`Contacto ${lastAnalysis.contact.toFixed(1)}`,canvas.width-32,canvas.height-53);
+  ctx.fillText(`Agregados ${lastAnalysis.blobs}`,canvas.width-32,canvas.height-29);
+  ctx.textAlign='left';
+}
+
+function captureGray(){
+  if(video.readyState<2) return null;
+  wctx.drawImage(video,0,0,sampleW,sampleH);
+  const d=wctx.getImageData(0,0,sampleW,sampleH).data;
+  const g=new Float32Array(sampleW*sampleH);
+  const mask=new Uint8Array(sampleW*sampleH);
+  for(let y=0;y<sampleH;y++) for(let x=0;x<sampleW;x++){
+    const i=y*sampleW+x, p=i*4;
+    g[i]=d[p]*.299+d[p+1]*.587+d[p+2]*.114;
+    mask[i]=insideEllipse((x+.5)/sampleW,(y+.5)/sampleH)?1:0;
+  }
+  return {g,mask};
+}
+function meanAbsDiff(a,b,mask){
+  let sum=0,n=0;
+  for(let i=0;i<a.length;i++) if(mask[i]){sum+=Math.abs(a[i]-b[i]);n++}
+  return n?sum/n:0;
+}
+function avgFrames(frames,mask){
+  if(!frames.length) return null;
+  const out=new Float32Array(frames[0].length);
+  for(const f of frames) for(let i=0;i<out.length;i++) if(mask[i]) out[i]+=f[i];
+  for(let i=0;i<out.length;i++) if(mask[i]) out[i]/=frames.length;
+  return out;
+}
+function blobAnalysis(g,mask){
+  // Local edge / coarse texture mask. Fine isolated particles are removed by component size.
+  const hi=new Uint8Array(g.length);
+  const th=Number($('aggregateContrast').value);
+  for(let y=1;y<sampleH-1;y++) for(let x=1;x<sampleW-1;x++){
+    const i=y*sampleW+x;if(!mask[i])continue;
+    const m=(g[i-1]+g[i+1]+g[i-sampleW]+g[i+sampleW])/4;
+    if(Math.abs(g[i]-m)>=th) hi[i]=1;
+  }
+  const seen=new Uint8Array(g.length);
+  const minSize=Number($('minBlob').value);
+  let blobs=0,total=0;
+  const stack=[];
+  for(let i=0;i<hi.length;i++){
+    if(!hi[i]||seen[i])continue;
+    let cnt=0; stack.push(i);seen[i]=1;
+    while(stack.length){
+      const k=stack.pop();cnt++;
+      const x=k%sampleW,y=(k/sampleW)|0;
+      const neigh=[k-1,k+1,k-sampleW,k+sampleW,k-sampleW-1,k-sampleW+1,k+sampleW-1,k+sampleW+1];
+      for(const n of neigh){
+        if(n<0||n>=hi.length||seen[n]||!hi[n])continue;
+        const nx=n%sampleW,ny=(n/sampleW)|0;
+        if(Math.abs(nx-x)>1||Math.abs(ny-y)>1)continue;
+        seen[n]=1;stack.push(n);
+      }
+    }
+    if(cnt>=minSize){blobs++;total+=cnt}
+  }
+  return {blobs,pixels:total};
+}
+function analyse(now){
+  const cap=captureGray();if(!cap)return;
+  const {g,mask}=cap;
+
+  if(state==='calibrating'){
+    calibFrames.push(g);
+    if(calibFrames.length>50) calibFrames.shift();
+    if(now>=calibratingUntil){
+      baseline=avgFrames(calibFrames,mask);
+      const diffs=calibFrames.map(f=>meanAbsDiff(f,baseline,mask));
+      baselineNoise=diffs.reduce((a,b)=>a+b,0)/Math.max(1,diffs.length);
+      state='armed';startHits=0;startCandidate=0;endCandidate=0;
+      $('stateText').textContent='Armado · deja caer los 5 g de una sola vez';
+      setHeader('Grabando · esperando contacto','rec');updateButtons();
+    }
+    return;
+  }
+
+  if(!baseline) return;
+  const contact=meanAbsDiff(g,baseline,mask);
+  const ba=blobAnalysis(g,mask);
+  lastAnalysis={contact,blobs:ba.blobs,blobPixels:ba.pixels};
+  $('contactScore').textContent=contact.toFixed(1);
+  $('blobScore').textContent=String(ba.blobs);
+
+  if(state==='armed'){
+    // Dynamic floor based on calibration noise, plus user setting.
+    const threshold=Math.max(Number($('contactSensitivity').value),baselineNoise*4.5);
+    if(contact>=threshold){
+      if(startHits===0) startCandidate=now;
+      startHits++;
+      if(startHits>=2){
+        startT=startCandidate;
+        state='running';endCandidate=0;stopT=0;
+        $('stateText').textContent='Contacto detectado automáticamente · cronómetro activo';
+        setHeader('Grabando · humectación en curso','rec');updateButtons();
+      }
+    }else{
+      startHits=0;startCandidate=0;
+    }
+    return;
+  }
+
+  if(state==='running'||state==='confirming'){
+    if((now-startT)/1000<Number($('minRunSec').value)) return;
+    const tolerance=Number($('endTolerance').value);
+    const isEnd=ba.blobs<=tolerance;
+
+    if(isEnd){
+      if(!endCandidate) endCandidate=now;
+      state='confirming';
+      const held=(now-endCandidate)/1000;
+      $('stateText').textContent=`Verificando fin automático ${held.toFixed(1)} / ${Number($('holdSec').value).toFixed(1)} s`;
+      if(held>=Number($('holdSec').value)){
+        autoStop(endCandidate, now);
+      }
+    }else{
+      endCandidate=0;
+      if(state==='confirming') state='running';
+      $('stateText').textContent='Humectación en curso · agregados gruesos detectados';
+    }
+  }
+}
+function mime(){
+  return ['video/webm;codecs=vp9','video/webm;codecs=vp8','video/webm'].find(x=>MediaRecorder.isTypeSupported(x))||'';
+}
+async function arm(){
+  if(state!=='camera'||!stream)return;
+  calibFrames=[];baseline=null;baselineNoise=0;startT=0;stopT=0;startCandidate=0;startHits=0;endCandidate=0;chunks=[];
+  if(lastUrl){URL.revokeObjectURL(lastUrl);lastUrl=null}
+  const fps=Number($('fps').value)||60;
+  const out=canvas.captureStream(fps); const mt=mime();
+  try{recorder=new MediaRecorder(out,mt?{mimeType:mt,videoBitsPerSecond:9000000}:{videoBitsPerSecond:9000000})}
+  catch(e){recorder=new MediaRecorder(out)}
+  recorder.ondataavailable=e=>{if(e.data&&e.data.size)chunks.push(e.data)};
+  recorder.start(250);recordingStart=performance.now();
+  state='calibrating';calibratingUntil=performance.now()+1500;
+  $('timer').textContent='0.00';$('stateText').textContent='Calibrando 1.5 s · no muevas el vaso';
+  setHeader('Grabando · calibrando superficie','rec');updateButtons();
+  $('review').style.display='none';
+}
+async function autoStop(endpointT, confirmNow){
+  if(!['running','confirming'].includes(state))return;
+  stopT=endpointT;confirmedStopWall=confirmNow;
+  const elapsed=(stopT-startT)/1000;
+  state='finishing'; $('timer').textContent=fmt(elapsed); $('stateText').textContent='Fin automático confirmado';
+  setHeader('Final automático detectado','ok'); updateButtons();
+
+  const done=new Promise(resolve=>{
+    const old=recorder.onstop;
+    recorder.onstop=e=>{if(old)old(e);resolve()}
+  });
+  if(recorder&&recorder.state!=='inactive')recorder.stop();
+  await done;
+  const blob=new Blob(chunks,{type:recorder.mimeType||'video/webm'});
+  lastUrl=URL.createObjectURL(blob);
+
+  const row={
+    n:rows.length+1,date:stamp(),product:$('product').value,lot:$('lot').value,replicate:$('replicate').value,
+    mass:$('mass').value,water:$('water').value,waterId:$('waterId').value,
+    start:'Automático',end:'Automático',time:Number(elapsed.toFixed(2)),
+    fps:Number(actualFps||0).toFixed(0),analyst:$('analyst').value,
+    blobUrl:lastUrl
+  };
+  rows.unshift(row);persist();renderRows();
+  $('review').style.display='block';$('reviewVideo').src=lastUrl;
+  $('reviewTime').textContent=fmt(elapsed)+' s';
+  $('reviewStart').textContent='AUTO';
+  $('reviewEnd').textContent='AUTO';
+  state='camera';updateButtons();
+  $('replicate').value=Number($('replicate').value||1)+1;
+  setHeader('Ensayo finalizado','ok');
+}
+function abort(){
+  if(recorder&&recorder.state!=='inactive')recorder.stop();
+  chunks=[];state='camera';baseline=null;startT=0;stopT=0;endCandidate=0;
+  $('timer').textContent='0.00';$('stateText').textContent='Ensayo abortado';
+  setHeader('Cámara activa','ok');updateButtons();
+}
+function recalibrate(){
+  if(state==='camera') arm();
+}
+function persist(){
+  localStorage.setItem('cipac_auto_rows',JSON.stringify(rows.slice(0,200).map(({blobUrl,...r})=>r)));
+}
+function filename(r){
+  const cl=s=>(s||'').toString().replace(/[^\w.-]+/g,'_').slice(0,36);
+  return `MT53_3_1_AUTO_${cl(r.product)}_${cl(r.lot)}_R${cl(r.replicate)}_${Number(r.time).toFixed(2)}s.webm`;
+}
+function renderRows(){
+  $('tbody').innerHTML=rows.map((r,i)=>`<tr>
+    <td>${esc(r.n||rows.length-i)}</td><td>${esc(r.date)}</td><td>${esc(r.product)}</td><td>${esc(r.lot)}</td>
+    <td>${esc(r.replicate)}</td><td>${esc(r.mass)}</td><td>${esc(r.water)}</td><td>${esc(r.start)}</td><td>${esc(r.end)}</td>
+    <td><b>${Number(r.time).toFixed(2)}</b></td><td>${esc(r.fps)}</td><td>${esc(r.analyst)}</td>
+    <td>${r.blobUrl?`<a href="${r.blobUrl}" download="${filename(r)}">Guardar video</a>`:'<span class="mini">No disponible tras recargar</span>'}</td>
+  </tr>`).join('');
+}
+function exportCSV(){
+  const cols=['Fecha','Producto','Lote','Replica','Masa_g','Agua_mL','ID_Agua','Inicio','Final','Tiempo_s','FPS','Analista'];
+  const q=v=>'"'+String(v??'').replace(/"/g,'""')+'"';
+  const csv=[cols.join(';'),...rows.map(r=>[
+    r.date,r.product,r.lot,r.replicate,r.mass,r.water,r.waterId,r.start,r.end,Number(r.time).toFixed(2),r.fps,r.analyst
+  ].map(q).join(';'))].join('\r\n');
+  const blob=new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8'});
+  const u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download='CIPAC_MT53_3_1_Resultados_Automaticos.csv';a.click();
+  setTimeout(()=>URL.revokeObjectURL(u),1000);
+}
+
+function loop(now){
+  draw(now);
+  const dt=now-lastRaf;lastRaf=now;if(dt>0){const f=1000/dt;fpsEMA=fpsEMA?fpsEMA*.94+f*.06:f}
+  if((state==='running'||state==='confirming')&&startT) $('timer').textContent=fmt((now-startT)/1000);
+  if(now-processLast>=50){processLast=now;analyse(now)}
+  raf=requestAnimationFrame(loop);
+}
+
+$('cameraBtn').addEventListener('click',startCamera);
+$('armBtn').addEventListener('click',arm);
+$('recalBtn').addEventListener('click',recalibrate);
+$('abortBtn').addEventListener('click',abort);
+$('cameraSelect').addEventListener('change',()=>{if(state==='camera')startCamera()});
+$('fps').addEventListener('change',()=>{if(state==='camera')startCamera()});
+$('exportBtn').addEventListener('click',exportCSV);
+$('clearBtn').addEventListener('click',()=>{if(confirm('¿Eliminar los resultados guardados?')){rows=[];persist();renderRows()}});
+document.addEventListener('visibilitychange',async()=>{if(document.visibilityState==='visible'&&'wakeLock'in navigator){try{wakeLock=await navigator.wakeLock.request('screen')}catch(e){}}});
+
+renderRows();
+if(!navigator.mediaDevices?.getUserMedia){
+  $('cameraBtn').disabled=true;
+  $('hint').textContent='Este navegador no permite acceso de cámara. Usa Chrome o Edge moderno mediante un contexto seguro.';
+}
+raf=requestAnimationFrame(loop);
+</script>
+</body>
+</html>
