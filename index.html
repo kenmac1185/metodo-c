@@ -57,6 +57,17 @@ a{color:var(--accent);font-weight:850;text-decoration:none}
 .review video{width:100%;max-height:430px;background:#0b1113;border-radius:12px}
 .reviewgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
 .pill{display:inline-flex;align-items:center;border-radius:999px;padding:6px 9px;background:#edf2f3;font-size:11px;font-weight:800}
+
+.livecard{margin-top:10px;border:1px solid var(--line);border-radius:16px;padding:13px 14px;display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;background:#f5f8f9}
+.livecard .lt{font-size:12px;font-weight:900;letter-spacing:.02em}
+.livecard .ld{font-size:11px;color:var(--muted);margin-top:3px;line-height:1.35}
+.livecard .clock{font:900 30px/1 ui-monospace,SFMono-Regular,Consolas,monospace;white-space:nowrap}
+.livecard.waiting{background:#f5f8f9}
+.livecard.running{background:#fff3df;border-color:#e7c36e}
+.livecard.confirming{background:#e8f1fb;border-color:#a9c9ea}
+.livecard.done{background:#e4f4ee;border-color:#9fd4c4}
+.livecard.error{background:#fdecea;border-color:#e4aaa5}
+
 @media(max-width:980px){main{grid-template-columns:1fr}.timer{font-size:42px}.metrics{grid-template-columns:1fr 1fr 1fr}}
 @media(max-width:560px){.grid{grid-template-columns:1fr}.full{grid-column:auto}.head{align-items:flex-start}.status{white-space:normal}.metrics{grid-template-columns:1fr 1fr}.reviewgrid{grid-template-columns:1fr}.viewer{padding:8px}.canvaswrap{aspect-ratio:auto;height:68vh;min-height:500px;max-height:760px;border-radius:12px}.canvaswrap canvas{width:100%;height:100%;object-fit:contain}.hint{position:static;margin-top:8px;background:#eef3f4;color:var(--ink);border:1px solid var(--line);font-size:12px}.toolbar{position:sticky;bottom:8px;z-index:8;background:rgba(255,255,255,.94);padding:8px;border-radius:14px;backdrop-filter:blur(10px)}main{padding:0 8px;margin-top:8px}.panel{padding:12px}.timerbox{position:sticky;top:84px;z-index:7}.subtitle{font-size:11px}}
 </style>
@@ -84,8 +95,15 @@ a{color:var(--accent);font-weight:850;text-decoration:none}
       <button id="recalBtn" disabled>Recalibrar</button>
       <button class="danger" id="abortBtn" disabled>Abortar ensayo</button>
     </div>
+    <div id="liveCard" class="livecard waiting">
+      <div>
+        <div id="liveTitle" class="lt">LISTO PARA ENSAYO</div>
+        <div id="liveDetail" class="ld">Ajusta la ROI a la superficie del agua y calibra antes de añadir la muestra.</div>
+      </div>
+      <div id="liveClock" class="clock">0.00 s</div>
+    </div>
     <div class="mini" style="margin-top:9px">
-      La grabación comienza al armar. La app detecta el primer contacto y luego busca la desaparición sostenida de agregados gruesos dentro de la ROI elíptica.
+      La grabación comienza al armar. El START se fija en el primer contacto. El STOP solo se habilita después de que el sistema haya identificado material seco grueso y posteriormente confirme su desaparición.
     </div>
 
     <div id="review" class="review">
@@ -107,7 +125,7 @@ a{color:var(--accent);font-weight:850;text-decoration:none}
     </div>
 
     <div class="autobox">
-      <b>Lógica automática:</b> 1) calibra agua quieta; 2) detecta el primer cambio abrupto por caída de muestra; 3) analiza solo la superficie elíptica; 4) ignora textura fina y busca agregados de tamaño relevante; 5) cuando desaparecen durante una ventana estable, fija automáticamente el STOP en el primer frame de esa ventana.
+      <b>Lógica automática v2:</b> 1) calibra el agua quieta; 2) fija START en el primer contacto; 3) compara cada frame con el agua calibrada compensando cambios globales de iluminación/color; 4) identifica áreas secas continuas y descarta partículas finas aisladas; 5) el STOP solo puede ocurrir después de haber detectado una fase seca real y confirmar luego su desaparición sostenida.
     </div>
 
     <h2>Identificación</h2>
@@ -136,18 +154,18 @@ a{color:var(--accent);font-weight:850;text-decoration:none}
     <h2>Detección automática</h2>
     <div class="grid">
       <div><label for="contactSensitivity">Contacto</label><input id="contactSensitivity" type="range" min="2" max="20" step="0.5" value="7"></div>
-      <div><label for="aggregateContrast">Contraste agregado</label><input id="aggregateContrast" type="range" min="4" max="35" value="14"></div>
-      <div><label for="minBlob">Tamaño mínimo agregado</label><input id="minBlob" type="range" min="4" max="80" value="18"></div>
-      <div><label for="endTolerance">Tolerancia final</label><input id="endTolerance" type="range" min="0" max="6" value="1"></div>
-      <div><label for="holdSec">Confirmación final (s)</label><input id="holdSec" type="number" min="0.3" max="5" step="0.1" value="1.2"></div>
-      <div><label for="minRunSec">Tiempo mínimo (s)</label><input id="minRunSec" type="number" min="0.2" max="20" step="0.1" value="0.8"></div>
+      <div><label for="aggregateContrast">Contraste área seca</label><input id="aggregateContrast" type="range" min="4" max="35" value="12"></div>
+      <div><label for="minBlob">Tamaño mínimo seco</label><input id="minBlob" type="range" min="4" max="120" value="16"></div>
+      <div><label for="endTolerance">Área final máx. (%)</label><input id="endTolerance" type="range" min="0.05" max="3" step="0.05" value="0.35"></div>
+      <div><label for="holdSec">Confirmación final (s)</label><input id="holdSec" type="number" min="0.5" max="5" step="0.1" value="1.5"></div>
+      <div><label for="minRunSec">Espera análisis (s)</label><input id="minRunSec" type="number" min="0.3" max="20" step="0.1" value="0.8"></div>
     </div>
 
     <div class="sep"></div>
     <div class="metrics">
       <div class="metric"><div class="v" id="fpsOut">—</div><div class="l">FPS cámara</div></div>
       <div class="metric"><div class="v" id="contactScore">—</div><div class="l">Cambio / contacto</div></div>
-      <div class="metric"><div class="v" id="blobScore">—</div><div class="l">Agregados gruesos</div></div>
+      <div class="metric"><div class="v" id="blobScore">—</div><div class="l">Mayor área seca %</div></div>
     </div>
     <div class="callout">
       <b>Control del método:</b> la detección automática del punto final es una capa instrumental añadida al MT 53.3.1. Antes de usarla como resultado oficial, debe verificarse/validarse contra el criterio visual del laboratorio con varios productos, analistas y tiempos de humectación.
@@ -188,6 +206,7 @@ let rows=JSON.parse(localStorage.getItem('cipac_auto_rows')||'[]');
 let processLast=0, actualFps=0, fpsEMA=0, lastRaf=performance.now();
 let lastAnalysis={contact:0, blobs:0, blobPixels:0};
 let recordingStart=0, confirmedStopWall=0;
+let seenCoarse=false, coarseFirstT=0, prevAnalysisFrame=null, lastMotion=0;
 
 const sampleW=96, sampleH=72;
 const work=document.createElement('canvas'); work.width=sampleW; work.height=sampleH;
@@ -196,6 +215,13 @@ const wctx=work.getContext('2d',{willReadFrequently:true});
 function esc(v){return (v??'').toString().replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function fmt(v){return Number(v||0).toFixed(2)}
 function setHeader(text,kind=''){ $('headerStatus').textContent=text; $('dot').className='dot'+(kind?' '+kind:''); }
+function setLiveCard(kind,title,detail,timeSec=null){
+  const c=$('liveCard'); if(!c)return;
+  c.className='livecard '+kind;
+  $('liveTitle').textContent=title;
+  $('liveDetail').textContent=detail;
+  $('liveClock').textContent=(timeSec==null?'0.00':fmt(timeSec))+' s';
+}
 function stamp(){return new Date().toLocaleString('es-PE',{hour12:false})}
 function ellipse(){
   return {
@@ -287,8 +313,22 @@ function draw(now){
   ctx.fillStyle='#fff';ctx.font=`600 ${Math.max(12,canvas.width/85)}px ui-monospace,Consolas,monospace`;
   ctx.textAlign='right';
   ctx.fillText(`Contacto ${lastAnalysis.contact.toFixed(1)}`,canvas.width-32,canvas.height-53);
-  ctx.fillText(`Agregados ${lastAnalysis.blobs}`,canvas.width-32,canvas.height-29);
+  ctx.fillText(`Área seca ${(lastAnalysis.largestPct||0).toFixed(2)} %`,canvas.width-32,canvas.height-29);
   ctx.textAlign='left';
+
+  if(state==='running'||state==='confirming'){
+    const elapsed=(now-startT)/1000;
+    const txt=state==='confirming'?'POSIBLE HUMECTACIÓN · VERIFICANDO':'MUESTRA NO HUMECTADA · CRONÓMETRO ACTIVO';
+    ctx.fillStyle=state==='confirming'?'rgba(31,95,159,.78)':'rgba(138,101,0,.78)';
+    const bw=Math.min(canvas.width-36,720), bh=58, bx=(canvas.width-bw)/2, by=canvas.height-154;
+    ctx.fillRect(bx,by,bw,bh);
+    ctx.fillStyle='#fff';ctx.textAlign='center';
+    ctx.font=`800 ${Math.max(13,canvas.width/70)}px Segoe UI,Arial`;
+    ctx.fillText(txt,canvas.width/2,by+22);
+    ctx.font=`900 ${Math.max(18,canvas.width/50)}px ui-monospace,Consolas,monospace`;
+    ctx.fillText(fmt(elapsed)+' s',canvas.width/2,by+46);
+    ctx.textAlign='left';
+  }
 }
 
 function captureGray(){
@@ -316,18 +356,42 @@ function avgFrames(frames,mask){
   for(let i=0;i<out.length;i++) if(mask[i]) out[i]/=frames.length;
   return out;
 }
+function medianOf(values){
+  if(!values.length)return 0;
+  values.sort((a,b)=>a-b);
+  const m=values.length>>1;
+  return values.length%2?values[m]:(values[m-1]+values[m])/2;
+}
 function blobAnalysis(g,mask){
-  // Local edge / coarse texture mask. Fine isolated particles are removed by component size.
-  const hi=new Uint8Array(g.length);
+  // v2: foreground relative to calibrated water, with global-shift compensation.
+  // This detects the interior of a dry powder patch, not only its edges.
+  const deltas=[];
+  let roiN=0;
+  for(let i=0;i<g.length;i++) if(mask[i]){
+    deltas.push(g[i]-baseline[i]); roiN++;
+  }
+  const globalShift=medianOf(deltas);
   const th=Number($('aggregateContrast').value);
+  const raw=new Uint8Array(g.length);
+
+  for(let y=1;y<sampleH-1;y++) for(let x=1;x<sampleW-1;x++){
+    const i=y*sampleW+x; if(!mask[i])continue;
+    const residual=Math.abs((g[i]-baseline[i])-globalShift);
+    if(residual>=th) raw[i]=1;
+  }
+
+  // Majority cleanup: removes isolated fine particles/noise and fills small holes.
+  const hi=new Uint8Array(g.length);
   for(let y=1;y<sampleH-1;y++) for(let x=1;x<sampleW-1;x++){
     const i=y*sampleW+x;if(!mask[i])continue;
-    const m=(g[i-1]+g[i+1]+g[i-sampleW]+g[i+sampleW])/4;
-    if(Math.abs(g[i]-m)>=th) hi[i]=1;
+    let n=0;
+    for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++) n+=raw[i+dy*sampleW+dx];
+    if(n>=3) hi[i]=1;
   }
+
   const seen=new Uint8Array(g.length);
   const minSize=Number($('minBlob').value);
-  let blobs=0,total=0;
+  let blobs=0,total=0,largest=0;
   const stack=[];
   for(let i=0;i<hi.length;i++){
     if(!hi[i]||seen[i])continue;
@@ -335,17 +399,22 @@ function blobAnalysis(g,mask){
     while(stack.length){
       const k=stack.pop();cnt++;
       const x=k%sampleW,y=(k/sampleW)|0;
-      const neigh=[k-1,k+1,k-sampleW,k+sampleW,k-sampleW-1,k-sampleW+1,k+sampleW-1,k+sampleW+1];
-      for(const n of neigh){
-        if(n<0||n>=hi.length||seen[n]||!hi[n])continue;
-        const nx=n%sampleW,ny=(n/sampleW)|0;
-        if(Math.abs(nx-x)>1||Math.abs(ny-y)>1)continue;
-        seen[n]=1;stack.push(n);
+      for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){
+        if(dx===0&&dy===0)continue;
+        const nx=x+dx,ny=y+dy;
+        if(nx<0||nx>=sampleW||ny<0||ny>=sampleH)continue;
+        const n=ny*sampleW+nx;
+        if(!seen[n]&&hi[n]){seen[n]=1;stack.push(n)}
       }
     }
-    if(cnt>=minSize){blobs++;total+=cnt}
+    if(cnt>=minSize){blobs++;total+=cnt;largest=Math.max(largest,cnt)}
   }
-  return {blobs,pixels:total};
+  return {
+    blobs,pixels:total,largest,
+    largestPct:roiN?largest*100/roiN:0,
+    totalPct:roiN?total*100/roiN:0,
+    globalShift
+  };
 }
 function analyse(now){
   const cap=captureGray();if(!cap)return;
@@ -359,7 +428,9 @@ function analyse(now){
       const diffs=calibFrames.map(f=>meanAbsDiff(f,baseline,mask));
       baselineNoise=diffs.reduce((a,b)=>a+b,0)/Math.max(1,diffs.length);
       state='armed';startHits=0;startCandidate=0;endCandidate=0;
+      seenCoarse=false;coarseFirstT=0;prevAnalysisFrame=null;
       $('stateText').textContent='Armado · deja caer los 5 g de una sola vez';
+      setLiveCard('waiting','ESPERANDO CONTACTO','Deja caer toda la muestra de una sola vez, sin mover el vaso.',0);
       setHeader('Grabando · esperando contacto','rec');updateButtons();
     }
     return;
@@ -368,12 +439,13 @@ function analyse(now){
   if(!baseline) return;
   const contact=meanAbsDiff(g,baseline,mask);
   const ba=blobAnalysis(g,mask);
-  lastAnalysis={contact,blobs:ba.blobs,blobPixels:ba.pixels};
+  lastMotion=prevAnalysisFrame?meanAbsDiff(g,prevAnalysisFrame,mask):0;
+  prevAnalysisFrame=new Float32Array(g);
+  lastAnalysis={contact,blobs:ba.blobs,blobPixels:ba.pixels,largestPct:ba.largestPct};
   $('contactScore').textContent=contact.toFixed(1);
-  $('blobScore').textContent=String(ba.blobs);
+  $('blobScore').textContent=ba.largestPct.toFixed(2);
 
   if(state==='armed'){
-    // Dynamic floor based on calibration noise, plus user setting.
     const threshold=Math.max(Number($('contactSensitivity').value),baselineNoise*4.5);
     if(contact>=threshold){
       if(startHits===0) startCandidate=now;
@@ -381,7 +453,9 @@ function analyse(now){
       if(startHits>=2){
         startT=startCandidate;
         state='running';endCandidate=0;stopT=0;
+        seenCoarse=false;coarseFirstT=0;
         $('stateText').textContent='Contacto detectado automáticamente · cronómetro activo';
+        setLiveCard('running','CONTACTO DETECTADO','Cronómetro iniciado. Evaluando presencia de material seco grueso.',(now-startT)/1000);
         setHeader('Grabando · humectación en curso','rec');updateButtons();
       }
     }else{
@@ -391,22 +465,55 @@ function analyse(now){
   }
 
   if(state==='running'||state==='confirming'){
-    if((now-startT)/1000<Number($('minRunSec').value)) return;
-    const tolerance=Number($('endTolerance').value);
-    const isEnd=ba.blobs<=tolerance;
+    const elapsed=(now-startT)/1000;
+    if(elapsed<Number($('minRunSec').value)){
+      setLiveCard('running','MUESTRA EN EVALUACIÓN','Cronómetro activo; esperando la primera ventana válida de análisis.',elapsed);
+      return;
+    }
+
+    const endArea=Number($('endTolerance').value);
+    const coarseGate=Math.max(0.80,endArea*2.5);
+
+    if(ba.largestPct>=coarseGate){
+      if(!seenCoarse){seenCoarse=true;coarseFirstT=now}
+      endCandidate=0;
+      if(state==='confirming')state='running';
+      $('stateText').textContent='Humectación en curso · material seco visible';
+      setLiveCard('running','⚠ MUESTRA AÚN NO HUMECTADA',
+        `Área seca continua detectada: ${ba.largestPct.toFixed(2)} %. El cronómetro continúa.`,elapsed);
+      return;
+    }
+
+    if(!seenCoarse){
+      // Critical safeguard: never auto-stop before a real dry phase has been observed.
+      endCandidate=0;
+      state='running';
+      $('stateText').textContent='Cronómetro activo · buscando fase seca';
+      setLiveCard('running','CRONÓMETRO EN CURSO',
+        `Todavía no se ha validado una fase seca gruesa. Área detectada: ${ba.largestPct.toFixed(2)} %.`,elapsed);
+      return;
+    }
+
+    const stableLimit=Math.max(2.2,baselineNoise*3.0);
+    const stable=lastMotion<=stableLimit;
+    const isEnd=ba.largestPct<=endArea && stable;
 
     if(isEnd){
       if(!endCandidate) endCandidate=now;
       state='confirming';
       const held=(now-endCandidate)/1000;
       $('stateText').textContent=`Verificando fin automático ${held.toFixed(1)} / ${Number($('holdSec').value).toFixed(1)} s`;
+      setLiveCard('confirming','POSIBLE HUMECTACIÓN COMPLETA',
+        `Área seca ${ba.largestPct.toFixed(2)} %. Confirmando estabilidad ${held.toFixed(1)} / ${Number($('holdSec').value).toFixed(1)} s.`,elapsed);
       if(held>=Number($('holdSec').value)){
-        autoStop(endCandidate, now);
+        autoStop(endCandidate,now);
       }
     }else{
       endCandidate=0;
-      if(state==='confirming') state='running';
-      $('stateText').textContent='Humectación en curso · agregados gruesos detectados';
+      if(state==='confirming')state='running';
+      $('stateText').textContent=stable?'Humectación en curso · restos secos detectados':'Humectación en curso · superficie en movimiento';
+      setLiveCard('running','⚠ MUESTRA AÚN NO HUMECTADA',
+        stable?`Persisten restos secos. Mayor área: ${ba.largestPct.toFixed(2)} %.`:`Superficie aún en movimiento; no se permite STOP automático.`,elapsed);
     }
   }
 }
@@ -415,7 +522,7 @@ function mime(){
 }
 async function arm(){
   if(state!=='camera'||!stream)return;
-  calibFrames=[];baseline=null;baselineNoise=0;startT=0;stopT=0;startCandidate=0;startHits=0;endCandidate=0;chunks=[];
+  calibFrames=[];baseline=null;baselineNoise=0;startT=0;stopT=0;startCandidate=0;startHits=0;endCandidate=0;chunks=[];seenCoarse=false;coarseFirstT=0;prevAnalysisFrame=null;
   if(lastUrl){URL.revokeObjectURL(lastUrl);lastUrl=null}
   const fps=Number($('fps').value)||60;
   const out=canvas.captureStream(fps); const mt=mime();
@@ -424,7 +531,7 @@ async function arm(){
   recorder.ondataavailable=e=>{if(e.data&&e.data.size)chunks.push(e.data)};
   recorder.start(250);recordingStart=performance.now();
   state='calibrating';calibratingUntil=performance.now()+1500;
-  $('timer').textContent='0.00';$('stateText').textContent='Calibrando 1.5 s · no muevas el vaso';
+  $('timer').textContent='0.00';$('stateText').textContent='Calibrando 1.5 s · no muevas el vaso';setLiveCard('waiting','CALIBRANDO AGUA','Mantén el vaso completamente inmóvil durante 1.5 s.',0);
   setHeader('Grabando · calibrando superficie','rec');updateButtons();
   $('review').style.display='none';
 }
@@ -432,7 +539,7 @@ async function autoStop(endpointT, confirmNow){
   if(!['running','confirming'].includes(state))return;
   stopT=endpointT;confirmedStopWall=confirmNow;
   const elapsed=(stopT-startT)/1000;
-  state='finishing'; $('timer').textContent=fmt(elapsed); $('stateText').textContent='Fin automático confirmado';
+  state='finishing'; $('timer').textContent=fmt(elapsed); $('stateText').textContent='Fin automático confirmado';setLiveCard('done','✓ HUMECTACIÓN COMPLETA',`STOP automático confirmado. Tiempo de humectación: ${fmt(elapsed)} s.`,elapsed);
   setHeader('Final automático detectado','ok'); updateButtons();
 
   const done=new Promise(resolve=>{
@@ -463,7 +570,7 @@ async function autoStop(endpointT, confirmNow){
 function abort(){
   if(recorder&&recorder.state!=='inactive')recorder.stop();
   chunks=[];state='camera';baseline=null;startT=0;stopT=0;endCandidate=0;
-  $('timer').textContent='0.00';$('stateText').textContent='Ensayo abortado';
+  $('timer').textContent='0.00';$('stateText').textContent='Ensayo abortado';setLiveCard('error','ENSAYO ABORTADO','No se registró resultado.',0);
   setHeader('Cámara activa','ok');updateButtons();
 }
 function recalibrate(){
@@ -498,7 +605,7 @@ function exportCSV(){
 function loop(now){
   draw(now);
   const dt=now-lastRaf;lastRaf=now;if(dt>0){const f=1000/dt;fpsEMA=fpsEMA?fpsEMA*.94+f*.06:f}
-  if((state==='running'||state==='confirming')&&startT) $('timer').textContent=fmt((now-startT)/1000);
+  if((state==='running'||state==='confirming')&&startT){const et=(now-startT)/1000;$('timer').textContent=fmt(et);if($('liveClock'))$('liveClock').textContent=fmt(et)+' s';}
   if(now-processLast>=50){processLast=now;analyse(now)}
   raf=requestAnimationFrame(loop);
 }
